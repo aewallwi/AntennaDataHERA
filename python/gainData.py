@@ -113,7 +113,7 @@ def readCSTS11(fileName,comment='',degrees=True):
 
 FILETYPES=['CST_TimeTrace','CST_S11','VNAHP_S11']
 class GainData():
-    def __init__(self,fileName,fileType,fMin=None,fMax=None,windowFunction=None,comment=''):
+    def __init__(self,fileName,fileType,fMin=None,fMax=None,windowFunction=None,comment='',filterNegative=False):
         assert fileType in FILETYPES
         if(windowFunction is None):
             windowFunction = 'blackman-harris'
@@ -141,5 +141,9 @@ class GainData():
             wF/=n.sqrt(n.mean(wF**2.))
         self.tAxis=fft.fftshift(fft.fftfreq(len(self.fAxis),self.fAxis[1]-self.fAxis[0]))
         self.gainDelay=fft.fftshift(fft.ifft(fft.fftshift(self.gainFrequency*wF)))
+        if(filterNegative):
+            gainDelay=fft.fftshift(fft.fft(fft.fftshift(self.gainFrequency)))
+            gainDelay[self.tAxis<-50.]=0.
+            self.gainFrequency=fft.fftshift(fft.ifft(fft.fftshift(gainDelay)))
         
     
