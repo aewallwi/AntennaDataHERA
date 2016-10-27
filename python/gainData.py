@@ -140,10 +140,9 @@ class GainData():
             wF=signal.blackmanharris(len(self.fAxis))
             wF/=n.sqrt(n.mean(wF**2.))
         self.tAxis=fft.fftshift(fft.fftfreq(len(self.fAxis),self.fAxis[1]-self.fAxis[0]))
-        self.gainDelay=fft.fftshift(fft.ifft(fft.fftshift(self.gainFrequency*wF)))
         if(filterNegative):
-            gainDelay=fft.fftshift(fft.fft(fft.fftshift(self.gainFrequency)))
-            gainDelay[self.tAxis<-50.]=0.
-            self.gainFrequency=fft.fftshift(fft.ifft(fft.fftshift(gainDelay)))
-        
+            gainDelay=fft.fftshift(fft.ifft(fft.fftshift(self.gainFrequency)))
+            gainDelay[self.tAxis<0.]=0.
+            self.gainFrequency=fft.fftshift(fft.fft(fft.fftshift(gainDelay)))
+        self.gainDelay=fft.fftshift(fft.ifft(fft.fftshift(self.gainFrequency*wF)))
     
