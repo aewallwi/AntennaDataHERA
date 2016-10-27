@@ -29,14 +29,11 @@ def readVNAHP(fileName,comment=''):
     return fAxis,data[:,0]+1j*data[:,1],meta
 
 #take ratio of fft of two inputs with padding
-def fftRatio(convolved,kernel,windowFunction):
+def fftRatio(convolved,kernel):
     nf=len(convolved)
-    if(windowFunction=='blackman-harris'):
-        wF=signal.blackmanharris(nf)
     convolved_pad=n.pad(convolved,(nf/2,nf/2),mode='constant')
     kernel_pad=n.pad(kernel,(nf/2,nf/2),mode='constant')
-    wF=n.pad(wF,(nf/2,nf/2),mode='constant')
-    return fft.fftshift(fft.fft(fft.fftshift(convolved_pad*wF)))/fft.fftshift(fft.fft(fft.fftshift(kernel_pad*wF)))
+    return fft.fftshift(fft.fft(convolved_pad)/fft.fft(kernel_pad))
     
 
 #Read CST time trace file
@@ -119,7 +116,7 @@ class GainData():
         if (fileType=='CST_TimeTrace'):
             [inputTrace,outputTrace,_],self.metaData=readCSTTimeTrace(fileName,comment=comment)
             self.fAxis=fft.fftshift(fft.fftfreq(len(inputTrace)*2,inputTrace[1,0]-inputTrace[0,0]))
-            self.gainFrequency=fftRatio(outputTrace[:,1],inputTrace[:,1],windowFunction=windowFunction)
+            self.gainFrequency=fftRatio(outputTrace[:,1],inputTrace[:,1])
             
         elif(fileType=='CST_S11'):
             self.fAxis,self.gainFrequency,self.metaData=readCSTS11(fileName,comment=comment)
@@ -136,6 +133,7 @@ class GainData():
         self.gainFrequency=self.gainFrequency[selection]
         if(windowFunction== 'blackman-harris'):
             wF=signal.blackmanharris(len(self.fAxis))
+            wF/=n.sqrt(n.mean(wF**2.))
         self.tAxis=fft.fftshift(fft.fftfreq(len(self.fAxis),self.fAxis[1]-self.fAxis[0]))
         self.gainDelay=fft.fftshift(fft.ifft(fft.fftshift(self.gainFrequency*wF)))
         

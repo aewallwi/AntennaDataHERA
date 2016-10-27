@@ -28,6 +28,7 @@ print gainData_timeTrace.tAxis
 print gainData_timeTrace.gainDelay
 
 #first make original plot comparing s11 of time trace and s11 of vna
+
 p.plot(gainData_vna.tAxis,10.*n.log10(n.abs(gainData_vna.gainDelay)),color='grey',ls='-',marker='o')
 p.plot(gainData_timeTrace.tAxis,10.*n.log10(n.abs(gainData_timeTrace.gainDelay)),color='k',ls='-',marker='o')
 p.xlim(-30,400)
