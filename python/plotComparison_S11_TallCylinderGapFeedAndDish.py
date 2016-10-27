@@ -23,14 +23,32 @@ gainData_vna=gainData.GainData(fileNameS11VNA,
                                fMin=FLOW,fMax=FHIGH,
                                comment='s11 obtained from richs vna measurement')
 
-print gainData_vna.tAxis
-print gainData_timeTrace.tAxis
-print gainData_timeTrace.gainDelay
+print gainData_cst.gainFrequency.shape
 
 #first make original plot comparing s11 of time trace and s11 of vna
 
-p.plot(gainData_vna.tAxis,10.*n.log10(n.abs(gainData_vna.gainDelay)),color='grey',ls='-',marker='o')
-p.plot(gainData_timeTrace.tAxis,10.*n.log10(n.abs(gainData_timeTrace.gainDelay)),color='k',ls='-',marker='o')
+p.plot(gainData_vna.tAxis,10.*n.log10(n.abs(gainData_vna.gainDelay)),color='grey',ls='-',marker='o',label='VNA Measurement',markersize=4,markeredgecolor='none')
+p.plot(gainData_timeTrace.tAxis,10.*n.log10(n.abs(gainData_timeTrace.gainDelay)),color='k',ls='-',marker='o',label='CST timetrace',markersize=4,markeredgecolor='none')
+p.plot(gainData_cst.tAxis,10.*n.log10(n.abs(gainData_cst.gainDelay)),color='k',ls='--',marker='o',label='CST $S_{11}$',markersize=4,markeredgecolor='none')
 p.xlim(-30,400)
-p.ylim(-50,0)
-p.show()
+p.ylim(-70,0)
+p.ylabel('|$\widetilde{S}_{11}$|(dB)')
+p.xlabel('delay (ns)')
+p.legend(loc='best')
+#p.show()
+p.grid()
+p.savefig('../plots/s11_CST_vs_ReflectometryRich_TallCylinderGapOverDish_Delay.pdf',bbox_inches='tight')
+p.close()
+
+p.plot(gainData_vna.fAxis,10.*n.log10(n.abs(gainData_vna.gainFrequency)),color='grey',ls='-',marker='o',label='VNA Measurement',markersize=4,markeredgecolor='none')
+p.plot(gainData_timeTrace.fAxis,10.*n.log10(n.abs(gainData_timeTrace.gainFrequency)),color='k',ls='-',marker='o',label='CST timetrace',markersize=4,markeredgecolor='none')
+p.plot(gainData_cst.fAxis,10.*n.log10(n.abs(gainData_cst.gainFrequency)),color='k',ls='--',marker='o',label='CST $S_{11}$',markersize=4,markeredgecolor='none')
+p.xlim(.1,.2)
+p.ylim(-15,0)
+p.ylabel('|S$_{11}$|(dB)')
+p.xlabel('f (GHz)')
+p.legend(loc='best')
+#p.show()
+p.grid()
+p.savefig('../plots/s11_CST_vs_ReflectometryRich_TallCylinderGapOverDish_Frequency.pdf',bbox_inches='tight')
+p.close()

@@ -85,6 +85,7 @@ def readCSTTimeTrace(fileName,comment=''):
     return [inputTrace,outputTrace1,outputTrace2],meta
     
 def readCSTS11(fileName,comment='',degrees=True):
+    dB=False
     header=open(fileName+'_abs.txt').readlines()[:2]
     if('MHz' in header[0]):
         fFactor=1e-3
@@ -94,10 +95,14 @@ def readCSTS11(fileName,comment='',degrees=True):
         fFactor=1e-6
     elif('Hz' in header[0]):
         fFactor=1e-9
-        
+    if('dB' in header[0]):
+        dB=True
     amp=n.loadtxt(fileName+'_abs.txt',skiprows=2)
     fAxis=amp[:,0]
     amp=amp[:,1]
+    if(dB):
+        amp=10.**(amp/20.)
+
     pha=n.loadtxt(fileName+'_pha.txt',skiprows=2)[:,1]
     if(degrees):
         pha*=n.pi/180.
