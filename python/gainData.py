@@ -11,9 +11,20 @@ class MetaData():
         self.device=device
         self.date=date
         self.dtype=dtype
-        self.comment=comment
+        self.comment=comment 
         self.datarange=datarange
 
+#read csv file
+def readCSV(fileName,comment='',device='',dtype=['','']):
+    data=n.loadtxt(fileName,delimiter=',')
+    NDATA=len(data)
+    FLOW=data[0,0]
+    FHIGH=data[-1,0]
+    fAxis=data[:,0]
+    meta=MetaData(device=device,dtype=dtype,datarange=[FLOW,FHIGH,NDATA],comment=comment)
+    return fAxis,data[:,1],meta
+    
+        
 #Read HP VNA data used in Greenbank measurements
 def readVNAHP(fileName,comment=''):
     dataFile=open(fileName)
@@ -111,7 +122,7 @@ def readCSTS11(fileName,comment='',degrees=True):
     return fFactor*fAxis,data,meta
     
 
-FILETYPES=['CST_TimeTrace','CST_S11','VNAHP_S11']
+FILETYPES=['CST_TimeTrace','CST_S11','VNAHP_S11','S11_CSV']
 class GainData():
     def __init__(self,fileName,fileType,fMin=None,fMax=None,windowFunction=None,comment='',filterNegative=False):
         assert fileType in FILETYPES
@@ -127,6 +138,8 @@ class GainData():
             self.fAxis,self.gainFrequency,self.metaData=readCSTS11(fileName,comment=comment)
         elif(fileType=='VNAHP_S11'):
             self.fAxis,self.gainFrequency,self.metaData=readVNAHP(fileName,comment=comment)
+        elif(fileType='S11_CSV'):
+            self.fAxis,self.gainFrequency,self.metaData=readCSV(fileName,comment=comment)
         if(fMin is None):
             fMin=self.fAxis.min()            
         if(fMax is None):
