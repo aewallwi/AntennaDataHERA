@@ -5,6 +5,7 @@ import numpy as n
 import healpy as hp
 import numpy.fft as fft
 import scipy.signal as signal
+import re as re
 
 class MetaData():
     def __init__(self,device='',date='',dtype='',comment='',datarange=[]):
@@ -16,13 +17,29 @@ class MetaData():
 
 #read csv file
 def readCSV(fileName,comment='',device='',dtype=['','']):
-    data=n.loadtxt(fileName,delimiter=',')
+    #data=n.loadtxt(fileName,delimiter=',',skiprows=1,dtype=n.complex)
+    file=open(fileName)
+    lines=file.readlines()
+    lines=lines[0].split('\r')
+    header=lines[0]
+    lines=lines[1:]
+    fAxis=[]
+    data=[]
+    for line in lines:
+        tokens=line.split(',')
+        print tokens
+        fAxis.append(float(tokens[0]))
+        tokens=tokens[1].split(' ')
+        print tokens
+        data.append(float(tokens[0])+float(tokens[1]+'1')*1j*float(tokens[2][:-1]))
+    fAxis=n.array(fAxis)
+    data=n.array(data)
     NDATA=len(data)
-    FLOW=data[0,0]
-    FHIGH=data[-1,0]
-    fAxis=data[:,0]
+    fAxis*=1e-9
+    FLOW=fAxis[0]
+    FHIGH=fAxis[-1]
     meta=MetaData(device=device,dtype=dtype,datarange=[FLOW,FHIGH,NDATA],comment=comment)
-    return fAxis,data[:,1],meta
+    return fAxis,data,meta
     
         
 #Read HP VNA data used in Greenbank measurements
@@ -138,7 +155,7 @@ class GainData():
             self.fAxis,self.gainFrequency,self.metaData=readCSTS11(fileName,comment=comment)
         elif(fileType=='VNAHP_S11'):
             self.fAxis,self.gainFrequency,self.metaData=readVNAHP(fileName,comment=comment)
-        elif(fileType='S11_CSV'):
+        elif(fileType=='S11_CSV'):
             self.fAxis,self.gainFrequency,self.metaData=readCSV(fileName,comment=comment)
         if(fMin is None):
             fMin=self.fAxis.min()            
