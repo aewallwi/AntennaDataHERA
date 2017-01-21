@@ -1,7 +1,7 @@
 #************************************************************
 #library for reading cst and VNA data files
 #************************************************************
-import numpy as n
+import numpy as np
 import healpy as hp
 import numpy.fft as fft
 import scipy.signal as signal
@@ -27,10 +27,8 @@ def readCSV(fileName,comment='',device='',dtype=['','']):
     data=[]
     for line in lines:
         tokens=line.split(',')
-        print tokens
         fAxis.append(float(tokens[0]))
         tokens=tokens[1].split(' ')
-        print tokens
         data.append(float(tokens[0])+float(tokens[1]+'1')*1j*float(tokens[2][:-1]))
     fAxis=n.array(fAxis)
     data=n.array(data)
@@ -41,26 +39,64 @@ def readCSV(fileName,comment='',device='',dtype=['','']):
     meta=MetaData(device=device,dtype=dtype,datarange=[FLOW,FHIGH,NDATA],comment=comment)
     return fAxis,data,meta
     
-        
+
+#Read S-parameter file supplied by Nicolas
+def readS1P(fileName,mode='simu',comment=''):
+    fileLines=open(fileName).readlines()
+    cstFlag=False
+    data=[]
+    freqs=[]
+    for line in fileLines:
+        if 'CST' in line:
+            cstFlag=True
+        if line[0]=='#':
+            if 'MHz' in line or 'MHZ' in line:
+                mFactor=1e-3
+                fUnit='MHz'
+            elif 'GHz' in line or 'GHZ' in line:
+                mFactor=1
+                fUnit='GHz'
+            elif 'Hz' in line or 'HZ' in line:
+                mFactor=1e-9
+                fUnit='Hz'
+            elif 'kHz' in line or 'KHZ' in line:
+                mFactor=1e-6
+                fUnit='kHz'
+        if not(line[0]=='!' or line[0] =='#'):
+            splitLine=line.split()
+            freqs.append(float(splitLine[0]))
+            data.append(float(splitLine[1])*np.exp(1j*np.radians(float(splitLine[2]))))
+    data=np.array(data)
+    freqs=np.array(freqs)*mFactor
+    if(cstFlag):
+        device='CST'
+    else:
+        device='DifferentialVNA'
+    meta=MetaData(device=device,dtype=['FREQ',fUnit],datarange=[freqs.min(),freqs.max(),len(freqs)],comment=comment)
+    return freqs,data,meta
+            
+    
+
+    
+
 #Read HP VNA data used in Greenbank measurements
 def readVNAHP(fileName,comment=''):
     dataFile=open(fileName)
     dataLines=dataFile.readlines()
     FLOW=1e-9*float(dataLines[6].split()[1]);FHIGH=1e-9*float(dataLines[6].split()[2]);
     NDATA=int(dataLines[6].split()[3])
-    data=n.loadtxt(fileName,skiprows=9,delimiter=',')
+    data=np.loadtxt(fileName,skiprows=9,delimiter=',')
     device=dataLines[1][:-2]
     dtype=dataLines[4].split()[1]
     meta=MetaData(device=device,dtype=['FREQ',dtype],datarange=[FLOW,FHIGH,NDATA],comment=comment)
-    fAxis=n.arange(NDATA)*(FHIGH-FLOW)/NDATA+FLOW
-    print fAxis
+    fAxis=np.arange(NDATA)*(FHIGH-FLOW)/NDATA+FLOW
     return fAxis,data[:,0]+1j*data[:,1],meta
 
 #take ratio of fft of two inputs with padding
 def fftRatio(convolved,kernel):
     nf=len(convolved)
-    convolved_pad=n.pad(convolved,(nf/2,nf/2),mode='constant')
-    kernel_pad=n.pad(kernel,(nf/2,nf/2),mode='constant')
+    convolved_pad=np.pad(convolved,(nf/2,nf/2),mode='constant')
+    kernel_pad=np.pad(kernel,(nf/2,nf/2),mode='constant')
     return fft.fftshift(fft.fft(convolved_pad)/fft.fft(kernel_pad))
     
 
@@ -77,7 +113,6 @@ def readCSTTimeTrace(fileName,comment=''):
         tFactor=1e3
     if('sec' in header[0]):
         tFactor=1e9
-        
     inputTrace=[]
     outputTrace1=[]
     outputTrace2=[]
@@ -102,13 +137,13 @@ def readCSTTimeTrace(fileName,comment=''):
             if(len(entry)==2):
                 thisTrace.append([float(entry[0]),float(entry[1])])
             lNum+=1
-    inputTrace=n.array(inputTrace)
-    outputTrace1=n.array(outputTrace1)
-    outputTrace2=n.array(outputTrace2)
+    inputTrace=np.array(inputTrace)
+    outputTrace1=np.array(outputTrace1)
+    outputTrace2=np.array(outputTrace2)
     inputTrace[:,0]*=tFactor
-    outputTrace1[:,1]*=tFactor
+    outputTrace1[:,0]*=tFactor
     if(len(outputTrace2)>0):
-        outputTrace2[:,1]*=tFactor
+        outputTrace2[:,0]*=tFactor
     meta=MetaData(device='CST',dtype=['TIME',dtype],datarange=[inputTrace[:,0].min(),inputTrace[:,0].max(),len(inputTrace[:,0])],comment=comment)
     return [inputTrace,outputTrace1,outputTrace2],meta
     
@@ -125,21 +160,21 @@ def readCSTS11(fileName,comment='',degrees=True):
         fFactor=1e-9
     if('dB' in header[0]):
         dB=True
-    amp=n.loadtxt(fileName+'_abs.txt',skiprows=2)
+    amp=np.loadtxt(fileName+'_abs.txt',skiprows=2)
     fAxis=amp[:,0]
     amp=amp[:,1]
     if(dB):
         amp=10.**(amp/20.)
 
-    pha=n.loadtxt(fileName+'_pha.txt',skiprows=2)[:,1]
+    pha=np.loadtxt(fileName+'_pha.txt',skiprows=2)[:,1]
     if(degrees):
-        pha*=n.pi/180.
-    data=amp*n.exp(1j*pha)
+        pha*=np.pi/180.
+    data=amp*np.exp(1j*pha)
     meta=MetaData(device='CST',dtype=['FREQ','S11'],datarange=[fAxis.min(),fAxis.max(),len(fAxis)],comment=comment)
     return fFactor*fAxis,data,meta
     
 
-FILETYPES=['CST_TimeTrace','CST_S11','VNAHP_S11','S11_CSV']
+FILETYPES=['CST_TimeTrace','CST_S11','VNAHP_S11','S11_CSV','S11_S1P']
 class GainData():
     def __init__(self,fileName,fileType,fMin=None,fMax=None,windowFunction=None,comment='',filterNegative=False):
         assert fileType in FILETYPES
@@ -157,18 +192,21 @@ class GainData():
             self.fAxis,self.gainFrequency,self.metaData=readVNAHP(fileName,comment=comment)
         elif(fileType=='S11_CSV'):
             self.fAxis,self.gainFrequency,self.metaData=readCSV(fileName,comment=comment)
+        elif(fileType=='S11_S1P'):
+            self.fAxis,self.gainFrequency,self.metaData=readS1P(fileName,comment=comment)
         if(fMin is None):
             fMin=self.fAxis.min()            
         if(fMax is None):
             fMax=self.fAxis.max()
-            
-            
-        selection=n.logical_and(self.fAxis>=fMin,self.fAxis<=fMax)
+        
+        selection=np.logical_and(self.fAxis>=fMin,self.fAxis<=fMax)
         self.fAxis=self.fAxis[selection]
         self.gainFrequency=self.gainFrequency[selection]
         if(windowFunction== 'blackman-harris'):
             wF=signal.blackmanharris(len(self.fAxis))
-            wF/=n.sqrt(n.mean(wF**2.))
+            wF/=np.sqrt(np.mean(wF**2.))
+        else:
+            wF=np.ones(len(self.fAxis))
         self.tAxis=fft.fftshift(fft.fftfreq(len(self.fAxis),self.fAxis[1]-self.fAxis[0]))
         if(filterNegative):
             gainDelay=fft.fftshift(fft.ifft(fft.fftshift(self.gainFrequency)))
