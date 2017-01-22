@@ -30,7 +30,7 @@ print gainData_cst.gainFrequency.shape
 p.plot(gainData_vna.tAxis,10.*n.log10(n.abs(gainData_vna.gainDelay)),color='grey',ls='-',marker='o',label='VNA Measurement',markeredgecolor='none')
 p.plot(gainData_timeTrace.tAxis,10.*n.log10(n.abs(gainData_timeTrace.gainDelay)),color='k',ls='-',marker='o',label='CST timetrace',markeredgecolor='none')
 p.plot(gainData_cst.tAxis,10.*n.log10(n.abs(gainData_cst.gainDelay)),color='k',ls='--',marker='o',label='CST $S_{11}$',markeredgecolor='none')
-p.xlim(-30,400)
+p.xlim(-300,400)
 p.ylim(-70,0)
 p.ylabel('|$\widetilde{S}_{11}$|(dB)')
 p.xlabel('delay (ns)')
