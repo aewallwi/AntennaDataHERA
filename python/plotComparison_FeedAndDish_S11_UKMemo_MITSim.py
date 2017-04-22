@@ -3,7 +3,7 @@ import matplotlib.pyplot as p
 import gainData as gainData
 
 fileNameS11VNA='../Cambridge UK results/S-Parameters/HERA diff S11 - 10-300MHz - 100ohm - meas.s1p'
-fileNameS11VNA='../Cambridge UK results/HERA S-param - single-ended mode - 10-300 MHz - 50 ohm - meas.s2p'
+#fileNameS11VNA='../Cambridge UK results/S-Parameters/HERA S-param - single-ended mode - 10-300 MHz - 50 ohm - meas.s2p'
 fileNameS11CST='../Cambridge UK results/S-Parameters/HERA diff S11 - 50-250MHz - 100ohm - simu - 47Mc.s1p'
 fileNameS11CST_MIT='../cst/SouthAfricaFeedOverDish/SouthAfricaFeedOverDish_noGap_s11'
 fileNameTimeTraceCST_MIT='../cst/SouthAfricaFeedOverDish/SouthAfricaFeedOverDish_noGap_terminal_excitation_timetrace.txt'

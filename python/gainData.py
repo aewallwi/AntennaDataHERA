@@ -5,7 +5,23 @@ import numpy as np
 import healpy as hp
 import numpy.fft as fft
 import scipy.signal as signal
+import matplotlib.pyplot as plt
 import re as re
+
+
+#************************************************************
+#compute delay spectrum in the same way that Nicolas does
+#************************************************************
+def ftUK(times,data):
+    '''
+    -import these data, resample them at a constant rate and do an extrapolation up to 0 MHz
+    -do an IFFT (with zero padding) of the frequency signals, and take 20*log10(|S11|) to convert it in dB
+    -plot the envelop of this time signal
+    -so in these plots, to make it simple I did not apply a specific windowing function, it is just a "square" from 0 to 250 MHz, but this can be modified
+    '''
+    return None
+
+
 
 class MetaData():
     def __init__(self,device='',date='',dtype='',comment='',datarange=[]):
@@ -38,6 +54,31 @@ def readCSV(fileName,comment='',device='',dtype=['','']):
     FHIGH=fAxis[-1]
     meta=MetaData(device=device,dtype=dtype,datarange=[FLOW,FHIGH,NDATA],comment=comment)
     return fAxis,data,meta
+
+#read single Anritsu CSV File
+def readAnritsuCSV(fname):
+    data=[]
+    readData=False
+    for line in open(fname).readLines():
+        if 'Frequency' in line:
+            readData=True
+            if 'MHz' in line:
+                funit=1e-3
+        if readData:
+            lineSplit=line.split(',')
+            data.append([float(lineSplit[0][1:-1]),float(lineSplit[1][1:-1])])
+    data[:,0]*funit
+    return np.array(data)
+
+def readAnritsu(fileName,comment=''):
+    fname_amp=fname+'_amp.csv'
+    fname_pha=fname+'_pha.csv'
+    freqs=fname_pha[:,0]
+    data_amp=readAnritsuCSV(fname_amp)
+    data_pha=readAnritsuCSV(fname_pha)
+    data=10**(-data_amp[:,1]/10.)
+    data=data*np.exp(1j*np.radians(data_pha[:,1]))
+    meta=MetaData(device='Anritsu 2024A VNA',dtype=['FREQ','GHz'],dataRange=[freqs.min(),freqs.max(),len(freqs)],comment=comment)
     
 
 #Read S-parameter file supplied by Nicolas
@@ -68,6 +109,10 @@ def readS1P(fileName,mode='simu',comment=''):
             data.append(float(splitLine[1])*np.exp(1j*np.radians(float(splitLine[2]))))
     data=np.array(data)
     freqs=np.array(freqs)*mFactor
+    #print np.diff(freqs)
+    #print freqs
+    #plt.plot(np.diff(freqs))
+    #plt.show()
     if(cstFlag):
         device='CST'
     else:
@@ -176,7 +221,7 @@ def readCSTS11(fileName,comment='',degrees=True):
 
 FILETYPES=['CST_TimeTrace','CST_S11','VNAHP_S11','S11_CSV','S11_S1P']
 class GainData():
-    def __init__(self,fileName,fileType,fMin=None,fMax=None,windowFunction=None,comment='',filterNegative=False):
+    def __init__(self,fileName,fileType,fMin=None,fMax=None,windowFunction=None,comment='',filterNegative=False,extrapolateBand=False):
         assert fileType in FILETYPES
         if(windowFunction is None):
             windowFunction = 'blackman-harris'
@@ -198,7 +243,31 @@ class GainData():
             fMin=self.fAxis.min()            
         if(fMax is None):
             fMax=self.fAxis.max()
-        
+
+        if(extrapolateBand):
+            print self.fAxis.min()
+            print self.fAxis.max()
+            if(fMin<self.fAxis.min()):
+                fitSelection=self.fAxis<self.fAxis.min()+.01
+                pReal=np.polyfit(self.fAxis[fitSelection],np.real(self.gainFrequency[fitSelection]),1)
+                pImag=np.polyfit(self.fAxis[fitSelection],np.imag(self.gainFrequency[fitSelection]),1)
+                fLow=np.arange(self.fAxis.min(),fMin,self.fAxis[0]-self.fAxis[1])
+                self.fAxis=np.hstack([fLow[::-1],self.fAxis])
+                self.gainFrequency=np.hstack([pReal[0]*fLow[::-1]+pReal[1]+1j*(pImag[0]*fLow[::-1]+pImag[1]),self.gainFrequency])
+                #plt.plot(self.fAxis[fitSelection],np.real(self.gainFrequency[fitSelection]),ls='none',marker='o')
+                #plt.plot(self.fAxis[fitSelection],self.fAxis[fitSelection]*pReal[0]+pReal[1],ls='--',color='r')
+                #plt.plot(fLow[::-1],fLow[::-1]*pReal[0]+pReal[1],color='k')
+                #plt.show()
+            if(fMax>self.fAxis.max()):
+                fitSelection=self.fAxis>self.fAxis.max()-.01
+                pReal=np.polyfit(self.fAxis[fitSelection],np.real(self.gainFrequency[fitSelection]),1)
+                pImag=np.polyfit(self.fAxis[fitSelection],np.imag(self.gainFrequency[fitSelection]),1)
+                fHigh=np.arange(self.fAxis.max(),fMax,self.fAxis[1]-self.fAxis[0])
+                self.fAxis=np.hstack([self.fAxis,fHigh])
+                self.gainFrequency=np.hstack([self.gainFrequency,pReal[0]*fHigh+pReal[1]+1j*(pImag[0]*fHigh+pImag[1])])
+
+                    
+            
         selection=np.logical_and(self.fAxis>=fMin,self.fAxis<=fMax)
         self.fAxis=self.fAxis[selection]
         self.gainFrequency=self.gainFrequency[selection]
